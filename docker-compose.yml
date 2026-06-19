@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: attendance-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: Par123iop
+      MYSQL_DATABASE: attendance_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - attendance-network
+
+  whatsapp-service:
+    build: ./whatsapp-service
+    container_name: whatsapp-service
+    ports:
+      - "3001:3001"
+    volumes:
+      - whatsapp_session:/app/whatsapp-session
+    networks:
+      - attendance-network
+
+  backend:
+    build: ./attendance-backend
+    container_name: attendance-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/attendance_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      WHATSAPP_SERVICE_URL: http://whatsapp-service:3001
+    depends_on:
+      - mysql
+      - whatsapp-service
+    networks:
+      - attendance-network
+
+  frontend:
+    build: ./attendance-frontend
+    container_name: attendance-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - attendance-network
+
+volumes:
+  mysql_data:
+  whatsapp_session:
+
+
+networks:
+  attendance-network:
+    driver: bridge
